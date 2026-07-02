@@ -1,0 +1,102 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type Checking
+.mypy_cache/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+
+# Environment Variables
+
+.env
+
+# Logs
+logs/
+*.log
+
+# Spark Logs
+spark-warehouse/
+metastore_db/
+
+# Data Storage
+storage/bronze/*
+storage/silver/*
+storage/gold/*
+storage/dlq/*
+storage/temp/*
+storage/checkpoints/*
+storage/warehouse/*
+
+# Keep directory structure
+!storage/bronze/.gitkeep
+!storage/silver/.gitkeep
+!storage/gold/.gitkeep
+!storage/dlq/.gitkeep
+!storage/temp/.gitkeep
+!storage/checkpoints/.gitkeep
+!storage/warehouse/.gitkeep
+
+# Output
+outputs/*
+!outputs/reports/.gitkeep
+!outputs/dashboards/.gitkeep
+!outputs/analytics/.gitkeep
+
+# Monitoring
+prometheus_data/
+grafana_data/
+
+# Airflow
+airflow/logs/
+airflow/plugins/__pycache__/
+
+# MinIO
+minio_data/
+
+# Delta Lake
+_delta_log/
+
+# Temporary Files
+*.tmp
+*.bak
+*.swp
+*.pid
+
+# Secrets
+*.pem
+*.key
+*.crt
+*.pfx
+*.jks
+
+# Misc
+.cache/

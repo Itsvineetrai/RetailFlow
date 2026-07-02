@@ -1,0 +1,54 @@
+# AeroMart Data Platform
+# Global Application Configuration
+
+project:
+  name: AeroMart-DataPlatform
+  environment: development
+  timezone: UTC
+  version: 1.0.0
+
+storage:
+  bronze: storage/bronze
+  silver: storage/silver
+  gold: storage/gold
+  dlq: storage/dlq
+  checkpoints: storage/checkpoints
+  temp: storage/temp
+
+kafka:
+  bootstrap_servers:
+    - kafka:9092
+
+  topics:
+    online_sales: online-sales
+    dead_letter_queue: dead-letter-queue
+
+spark:
+  app_name: AeroMartPipeline
+  master: spark://spark-master:7077
+
+currency:
+  base_currency: USD
+
+generator:
+  transactions_per_second: 100
+
+  batch_interval_minutes: 60
+
+logging:
+  level: INFO
+
+minio:
+  endpoint: http://minio:9000
+
+  access_key: minioadmin
+
+  secret_key: minioadmin
+
+  buckets:
+    raw: raw-pos-files
+    bronze: bronze
+    silver: silver
+    gold: gold
+    dlq: dlq
+    checkpoints: checkpoints
