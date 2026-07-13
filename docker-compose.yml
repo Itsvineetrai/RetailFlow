@@ -1,0 +1,325 @@
+name: ${PROJECT_NAME:-retailflow}
+
+networks:
+  retailflow-network:
+    name: ${DOCKER_NETWORK:-retailflow-network}
+    driver: bridge
+
+volumes:
+  kafka-data:
+    name: ${PROJECT_NAME:-retailflow}-kafka-data
+  minio-data:
+    name: ${PROJECT_NAME:-retailflow}-minio-data
+  postgres-data:
+    name: ${PROJECT_NAME:-retailflow}-postgres-data
+  airflow-logs:
+    name: ${PROJECT_NAME:-retailflow}-airflow-logs
+
+x-airflow-common: &airflow-common
+  image: ${AIRFLOW_IMAGE:-apache/airflow:2.10.5-python3.11}
+  environment: &airflow-common-env
+    TZ: ${TZ:-UTC}
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - airflow-logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
+  networks:
+    - retailflow-network
+  depends_on:
+    postgres:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    hostname: kafka
+    networks:
+      - retailflow-network
+    ports:
+      - "9092:9092"   # Native Docker bridge channel
+      - "29092:29092" # External Windows host script channel
+    environment:
+      TZ: ${TZ:-UTC}
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID:-1}
+      KAFKA_PROCESS_ROLES: broker,controller
+      # Define clean, standard protocols that apache/kafka safely recognizes out-of-the-box
+      KAFKA_LISTENERS: PLAINTEXT://:9092,REMOTING://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,REMOTING://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Map the security keys directly to standard PLAINTEXT parameters
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,REMOTING:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID:-1}@kafka:${KAFKA_CONTROLLER_PORT:-9093}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    networks:
+      - retailflow-network
+    ports:
+      - "${KAFKA_UI_PORT:-8090}:8080"
+    environment:
+      TZ: ${TZ:-UTC}
+      KAFKA_CLUSTERS_0_NAME: ${PROJECT_NAME:-retailflow}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092 # Talking inside Docker, uses standard PLAINTEXT
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  spark-master:
+    image: ${SPARK_IMAGE:-apache/spark:3.5.4-scala2.12-java11-python3-ubuntu}
+    volumes:
+      - ./configs/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    hostname: spark-master
+    networks:
+      - retailflow-network
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - ${SPARK_MASTER_HOST:-spark-master}
+      - --port
+      - "${SPARK_MASTER_PORT:-7077}"
+      - --webui-port
+      - "8080"
+    ports:
+      - "${SPARK_MASTER_PORT:-7077}:7077"
+      - "${SPARK_MASTER_WEBUI_PORT:-8080}:8080"
+    environment:
+      TZ: ${TZ:-UTC}
+      SPARK_MASTER_HOST: ${SPARK_MASTER_HOST:-spark-master}
+      SPARK_MASTER_PORT: ${SPARK_MASTER_PORT:-7077}
+      SPARK_MASTER_WEBUI_PORT: 8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  spark-worker-1:
+    image: ${SPARK_IMAGE:-apache/spark:3.5.4-scala2.12-java11-python3-ubuntu}
+    volumes:
+      - ./configs/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    hostname: spark-worker-1
+    networks:
+      - retailflow-network
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - --webui-port
+      - "8081"
+      - spark://${SPARK_MASTER_HOST:-spark-master}:${SPARK_MASTER_PORT:-7077}
+    ports:
+      - "${SPARK_WORKER_1_WEBUI_PORT:-8082}:8081"
+    environment:
+      TZ: ${TZ:-UTC}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-2g}
+      SPARK_WORKER_WEBUI_PORT: 8081
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    restart: unless-stopped
+
+  spark-worker-2:
+    image: ${SPARK_IMAGE:-apache/spark:3.5.4-scala2.12-java11-python3-ubuntu}
+    volumes:
+      - ./configs/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    hostname: spark-worker-2
+    networks:
+      - retailflow-network
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - --webui-port
+      - "8081"
+      - spark://${SPARK_MASTER_HOST:-spark-master}:${SPARK_MASTER_PORT:-7077}
+    ports:
+      - "${SPARK_WORKER_2_WEBUI_PORT:-8083}:8081"
+    environment:
+      TZ: ${TZ:-UTC}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-2g}
+      SPARK_WORKER_WEBUI_PORT: 8081
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    hostname: minio
+    networks:
+      - retailflow-network
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      TZ: ${TZ:-UTC}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    networks:
+      - retailflow-network
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        # 1. Configure the MinIO client connection alias 'local'
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}";
+        
+        # 2. Create the Medallion architecture buckets if they do not exist
+        for bucket in bronze silver gold quarantine; do
+          if ! mc ls local/"$$bucket" >/dev/null 2>&1; then
+            echo "Creating bucket: $$bucket"
+            mc mb local/"$$bucket";
+          else
+            echo "Bucket already exists: $$bucket"
+          fi
+        done;
+        
+        echo "All target retail buckets initialized successfully!";
+        exit 0;
+    restart: "no"
+    
+  postgres:
+    image: postgres:16.6-alpine
+    hostname: postgres
+    networks:
+      - retailflow-network
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      TZ: ${TZ:-UTC}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - -c
+      - |
+        set -e
+        airflow db migrate
+        airflow users create \
+          --username "${AIRFLOW_ADMIN_USERNAME}" \
+          --password "${AIRFLOW_ADMIN_PASSWORD}" \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email "${AIRFLOW_ADMIN_EMAIL}" \
+          || true
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $(hostname)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "${AIRFLOW_WEB_PORT:-8088}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-scheduler:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

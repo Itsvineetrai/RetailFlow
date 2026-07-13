@@ -1,0 +1,9 @@
+{
+  "topics": [
+    "retail.transactions",
+    "inventory.updates",
+    "supply.orders",
+    "deadletter.transactions",
+    "audit.logs"
+  ]
+}

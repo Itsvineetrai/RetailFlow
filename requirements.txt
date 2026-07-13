@@ -1,43 +1,43 @@
-pyspark==3.5.5
-
-delta-spark==3.2.1
-
-kafka-python==2.2.15
-
-minio==7.2.16
-
-pandas==2.3.1
-
-pyarrow==20.0.0
-
-numpy==2.3.1
-
+# Core
 python-dotenv==1.1.1
-
+pydantic==2.11.7
+pydantic-settings==2.10.1
 PyYAML==6.0.2
-
-faker==37.4.0
-
-orjson==3.11.0
-
 loguru==0.7.3
 
-tenacity==9.1.2
+# Kafka
+kafka-python==2.2.15
 
-pydantic==2.11.7
+# Spark
+pyspark==3.5.7
+delta-spark==3.2.1
 
-apache-airflow==3.0.3
+# Storage
+minio==7.2.16
 
+# API
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+httpx==0.28.1
+
+# Data
+pandas==2.3.1
+pyarrow==21.0.0
+numpy==2.3.1
+
+# Airflow Client
+apache-airflow-client==2.0.0
+
+# Monitoring
 prometheus-client==0.22.1
 
+# Testing
 pytest==8.4.1
+pytest-cov==6.2.1
 
+# Quality
 black==25.1.0
+ruff==0.12.3
 
-ruff==0.12.2
-
-mypy==1.16.1
-
-schedule==1.2.2
-
-delta_spark==3.2.1
+# Utilities
+tenacity==9.1.2

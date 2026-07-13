@@ -1,3 +1,0 @@
-"""
-Metadata loaders for AeroMart.
-"""
