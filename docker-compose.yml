@@ -16,9 +16,15 @@ volumes:
     name: ${PROJECT_NAME:-retailflow}-airflow-logs
 
 x-airflow-common: &airflow-common
-  image: ${AIRFLOW_IMAGE:-apache/airflow:2.10.5-python3.11}
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+
   environment: &airflow-common-env
     TZ: ${TZ:-UTC}
+    PYTHONPATH: /opt/airflow/project
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
@@ -26,16 +32,22 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+
   volumes:
+    - ./:/opt/airflow/project
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - airflow-logs:/opt/airflow/logs
+
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
+
   networks:
     - retailflow-network
+
   depends_on:
     postgres:
       condition: service_healthy
+
   restart: unless-stopped
 
 services:
@@ -52,11 +64,9 @@ services:
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
       KAFKA_NODE_ID: ${KAFKA_NODE_ID:-1}
       KAFKA_PROCESS_ROLES: broker,controller
-      # Define clean, standard protocols that apache/kafka safely recognizes out-of-the-box
       KAFKA_LISTENERS: PLAINTEXT://:9092,REMOTING://:29092,CONTROLLER://:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,REMOTING://localhost:29092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      # Map the security keys directly to standard PLAINTEXT parameters
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,REMOTING:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID:-1}@kafka:${KAFKA_CONTROLLER_PORT:-9093}
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -87,7 +97,7 @@ services:
     environment:
       TZ: ${TZ:-UTC}
       KAFKA_CLUSTERS_0_NAME: ${PROJECT_NAME:-retailflow}
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092 # Talking inside Docker, uses standard PLAINTEXT
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
       kafka:
         condition: service_healthy
@@ -246,7 +256,7 @@ services:
         echo "All target retail buckets initialized successfully!";
         exit 0;
     restart: "no"
-    
+
   postgres:
     image: postgres:16.6-alpine
     hostname: postgres

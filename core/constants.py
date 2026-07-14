@@ -8,155 +8,110 @@ Do NOT store secrets or configurable values here.
 Use core.config for environment-specific settings.
 """
 
-from pathlib import Path
+from __future__ import annotations
 
 # =============================================================================
-# Project Information
+# PROJECT
 # =============================================================================
 
 PROJECT_NAME = "RetailFlow"
-PROJECT_VERSION = "1.0.0"
 
 # =============================================================================
-# Base Directories
+# STORAGE BUCKETS
 # =============================================================================
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-
-CONFIG_DIR = ROOT_DIR / "configs"
-
-CORE_DIR = ROOT_DIR / "core"
-
-INGESTION_DIR = ROOT_DIR / "ingestion"
-
-STORAGE_DIR = ROOT_DIR / "storage"
-
-LOG_DIR = ROOT_DIR / "logs"
-
-TESTS_DIR = ROOT_DIR / "tests"
+MINIO_BUCKET = "retailflow"
 
 # =============================================================================
-# Storage Paths
+# DATA LAKE PATHS
 # =============================================================================
 
-LANDING_DIR = STORAGE_DIR / "landing"
+LANDING_PATH = f"s3a://{MINIO_BUCKET}/landing"
 
-BRONZE_DIR = STORAGE_DIR / "bronze"
+BRONZE_PATH = f"s3a://{MINIO_BUCKET}/bronze"
 
-SILVER_DIR = STORAGE_DIR / "silver"
+SILVER_PATH = f"s3a://{MINIO_BUCKET}/silver"
 
-GOLD_DIR = STORAGE_DIR / "gold"
+GOLD_PATH = f"s3a://{MINIO_BUCKET}/gold"
 
-CHECKPOINT_DIR = STORAGE_DIR / "checkpoints"
+QUARANTINE_PATH = f"s3a://{MINIO_BUCKET}/quarantine"
 
-QUARANTINE_DIR = STORAGE_DIR / "quarantine"
-
-ARCHIVE_DIR = STORAGE_DIR / "archive"
+ARCHIVE_PATH = f"s3a://{MINIO_BUCKET}/archive"
 
 # =============================================================================
-# MinIO Buckets
+# DATASET PATHS
 # =============================================================================
 
-LANDING_BUCKET = "landing"
+BRONZE_TRANSACTIONS_PATH = (
+    f"{BRONZE_PATH}/transactions"
+)
 
-BRONZE_BUCKET = "bronze"
+SILVER_TRANSACTIONS_PATH = (
+    f"{SILVER_PATH}/transactions"
+)
 
-SILVER_BUCKET = "silver"
+GOLD_TRANSACTIONS_PATH = (
+    f"{GOLD_PATH}/transactions"
+)
 
-GOLD_BUCKET = "gold"
+QUARANTINE_TRANSACTIONS_PATH = (
+    f"{QUARANTINE_PATH}/transactions"
+)
 
 # =============================================================================
-# Kafka Topics
+# CHECKPOINTS
+# =============================================================================
+
+CHECKPOINT_ROOT = (
+    f"s3a://{MINIO_BUCKET}/checkpoints"
+)
+
+BRONZE_CHECKPOINT_PATH = (
+    f"{CHECKPOINT_ROOT}/bronze"
+)
+
+SILVER_CHECKPOINT_PATH = (
+    f"{CHECKPOINT_ROOT}/silver"
+)
+
+GOLD_CHECKPOINT_PATH = (
+    f"{CHECKPOINT_ROOT}/gold"
+)
+
+# =============================================================================
+# KAFKA
 # =============================================================================
 
 TRANSACTIONS_TOPIC = "retail.transactions"
 
-INVENTORY_TOPIC = "inventory.updates"
-
-SUPPLY_TOPIC = "supply.orders"
-
-AUDIT_TOPIC = "audit.logs"
-
-DLQ_TOPIC = "deadletter.transactions"
-
 # =============================================================================
-# Supported File Formats
+# FILE FORMATS
 # =============================================================================
+
+PARQUET = "parquet"
 
 CSV = "csv"
 
 JSON = "json"
 
-XML = "xml"
-
-PARQUET = "parquet"
-
-AVRO = "avro"
-
 # =============================================================================
-# Spark Application Names
+# PIPELINE MODES
 # =============================================================================
 
-SPARK_APP_BATCH = "RetailFlow-Batch"
+APPEND = "append"
 
-SPARK_APP_STREAMING = "RetailFlow-Streaming"
-
-SPARK_APP_RECONCILIATION = "RetailFlow-Reconciliation"
+OVERWRITE = "overwrite"
 
 # =============================================================================
-# Logging
+# QUALITY
 # =============================================================================
 
-DEFAULT_LOGGER_NAME = "RetailFlow"
-
-DEFAULT_LOG_FORMAT = (
-    "{time:YYYY-MM-DD HH:mm:ss} | "
-    "{level:<8} | "
-    "{name}:{function}:{line} | "
-    "{message}"
-)
-
-# =============================================================================
-# Time Formats
-# =============================================================================
-
-DEFAULT_TIMEZONE = "UTC"
-
-TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
-
-DATE_FORMAT = "%Y-%m-%d"
-
-# =============================================================================
-# Retry Configuration
-# =============================================================================
-
-MAX_RETRIES = 3
-
-RETRY_DELAY_SECONDS = 5
-
-# =============================================================================
-# Data Validation
-# =============================================================================
-
-SUPPORTED_POS_FILE_TYPES = (
-    CSV,
-    XML,
-)
-
-SUPPORTED_STREAM_FORMATS = (
-    JSON,
-    AVRO,
-)
-
-SUPPORTED_BATCH_FORMATS = (
-    CSV,
-    PARQUET,
-)
-
-# =============================================================================
-# Exit Codes
-# =============================================================================
-
-SUCCESS = 0
-
-FAILURE = 1
+REQUIRED_TRANSACTION_COLUMNS = [
+    "transaction_id",
+    "transaction_timestamp",
+    "store_id",
+    "product_id",
+    "quantity",
+    "unit_price_cents",
+    "total_amount_cents",
+]
