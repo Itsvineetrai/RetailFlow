@@ -32,45 +32,65 @@ class GoldPipeline:
 
     def run(self):
 
-        logger.info("Starting Gold Pipeline...")
+        logger.info("Starting Gold Delta Pipeline...")
+
+        # ---------------------------------------------------------
+        # Read Silver Delta
+        # ---------------------------------------------------------
 
         df = (
 
             self.spark.read
 
-            .format("parquet")
+            .format("delta")
 
-            .load(SILVER_TRANSACTIONS_PATH)
+            .load(
+                SILVER_TRANSACTIONS_PATH
+            )
 
-            .cache()
+            # .cache()
 
         )
 
-        logger.success("Silver Data Loaded.")
+        logger.success("Silver Delta Loaded.")
 
         datasets = {
 
-            "daily_sales": SalesMetrics.daily_sales(df),
+            "daily_sales":
+                SalesMetrics.daily_sales(df),
 
-            "payment_summary": SalesMetrics.revenue_by_payment(df),
+            "payment_summary":
+                SalesMetrics.revenue_by_payment(df),
 
-            "category_sales": ProductMetrics.category_sales(df),
+            "category_sales":
+                ProductMetrics.category_sales(df),
 
-            "top_products": ProductMetrics.top_products(df),
+            "top_products":
+                ProductMetrics.top_products(df),
 
-            "store_sales": StoreMetrics.revenue_by_store(df),
+            "store_sales":
+                StoreMetrics.revenue_by_store(df),
 
-            "city_sales": StoreMetrics.revenue_by_city(df),
+            "city_sales":
+                StoreMetrics.revenue_by_city(df),
 
-            "customer_segments": CustomerMetrics.customer_segments(df),
+            "customer_segments":
+                CustomerMetrics.customer_segments(df),
 
-            "loyalty_analysis": CustomerMetrics.loyalty_analysis(df),
+            "loyalty_analysis":
+                CustomerMetrics.loyalty_analysis(df),
 
-            "financial_summary": FinanceMetrics.financial_summary(df),
+            "financial_summary":
+                FinanceMetrics.financial_summary(df),
 
-            "payment_finance": FinanceMetrics.payment_summary(df),
+            "payment_finance":
+                FinanceMetrics.payment_summary(df),
 
         }
+
+        # ---------------------------------------------------------
+        # Write Gold Delta Datasets
+        # ---------------------------------------------------------
 
         for dataset_name, dataset_df in datasets.items():
 
@@ -80,13 +100,19 @@ class GoldPipeline:
 
                 dataset_df.write
 
+                .format("delta")
+
                 .mode("overwrite")
 
-                .parquet(f"{GOLD_PATH}/{dataset_name}")
+                .save(
+                    f"{GOLD_PATH}/{dataset_name}"
+                )
 
             )
 
-        logger.success("Gold Pipeline Completed Successfully.")
+        logger.success(
+            "Gold Delta Pipeline Completed Successfully."
+        )
 
         df.unpersist()
 

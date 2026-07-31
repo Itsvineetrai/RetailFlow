@@ -77,12 +77,12 @@ class Settings(BaseSettings):
     )
 
     spark_driver_memory: str = Field(
-        default="2g",
+        default="1g",
         alias="SPARK_DRIVER_MEMORY",
     )
 
     spark_executor_memory: str = Field(
-        default="2g",
+        default="1g",
         alias="SPARK_EXECUTOR_MEMORY",
     )
 
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     )
 
     minio_bucket: str = Field(
-        default="landing",
+        default="retailflow",
         alias="MINIO_BUCKET",
     )
 

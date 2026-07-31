@@ -133,7 +133,7 @@ class EcommerceStreamingPipeline:
 
             .option(
                 "startingOffsets",
-                "latest",
+                "earliest",
             )
 
             .load()

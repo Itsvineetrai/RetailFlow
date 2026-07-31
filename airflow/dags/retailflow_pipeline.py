@@ -27,7 +27,6 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-
 default_args = {
     "owner": "retailflow",
     "depends_on_past": False,
@@ -37,12 +36,11 @@ default_args = {
     "retry_delay": timedelta(minutes=2),
 }
 
-
 with DAG(
 
     dag_id="retailflow_pipeline",
 
-    description="RetailFlow Data Platform",
+    description="RetailFlow Delta Medallion Pipeline",
 
     default_args=default_args,
 
@@ -56,39 +54,33 @@ with DAG(
 
     tags=[
         "retailflow",
+        "delta",
         "spark",
         "etl",
     ],
 
 ) as dag:
 
-    # --------------------------------------------------------
-    # Silver
-    # --------------------------------------------------------
-
     silver_pipeline = BashOperator(
 
         task_id="silver_pipeline",
 
         bash_command="""
-        cd /opt/airflow/project &&
+        set -e
+        cd /opt/airflow/project
         python -m scripts.run_silver
-        """
-
+        """,
     )
-
-    # --------------------------------------------------------
-    # Gold
-    # --------------------------------------------------------
 
     gold_pipeline = BashOperator(
 
         task_id="gold_pipeline",
 
         bash_command="""
-        cd /opt/airflow/project &&
+        set -e
+        cd /opt/airflow/project
         python -m scripts.run_gold
-        """
+        """,
 
     )
 

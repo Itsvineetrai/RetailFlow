@@ -82,6 +82,33 @@ def verify_kafka() -> bool:
         return True
 
     return False
+def verify_spark_kafka() -> bool:
+    logger.info("Checking Spark Kafka connector...")
+
+    spark = SparkSessionManager.get_session(
+        app_name="RetailFlow-Kafka-Test"
+    )
+
+    try:
+        (
+            spark.readStream
+            .format("kafka")
+            .option(
+                "kafka.bootstrap.servers",
+                settings.kafka_bootstrap_servers,
+            )
+            .option(
+                "subscribe",
+                settings.kafka_transactions_topic,
+            )
+            .load()
+        )
+
+        logger.success("Spark Kafka connector available.")
+        return True
+
+    finally:
+        SparkSessionManager.stop()
 
 
 def verify_minio() -> bool:
@@ -108,9 +135,10 @@ def main() -> None:
         ("Configuration", verify_config),
         ("Logger", verify_logger),
         ("Spark", verify_spark),
+        ("Spark Kafka", verify_spark_kafka),
         ("Kafka", verify_kafka),
         ("MinIO", verify_minio),
-    ]
+    ]   
 
     passed = 0
 
