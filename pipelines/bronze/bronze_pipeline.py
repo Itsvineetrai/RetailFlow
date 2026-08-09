@@ -1,54 +1,47 @@
 from __future__ import annotations
 
-from core.constants import (
-    APPEND,
-    BRONZE_CHECKPOINT_PATH,
-    BRONZE_TRANSACTIONS_PATH,
-)
-
+from core.constants import BRONZE_CHECKPOINT_PATH
 from core.logger import get_logger
 
 from ingestion.ecommerce_stream.pipeline import (
     EcommerceStreamingPipeline,
 )
+from pipelines.bronze.bronze_writer import BronzeWriter
 
 logger = get_logger(__name__)
 
 
 class BronzePipeline:
+    """
+    Streaming Bronze Pipeline.
+
+    Flow:
+
+        Kafka
+          ↓
+        Spark Structured Streaming
+          ↓
+        Bronze Delta
+    """
 
     def __init__(self):
 
         self.pipeline = EcommerceStreamingPipeline()
 
+        self.writer = BronzeWriter()
+
     def start(self):
 
-        logger.info("Starting Bronze Delta Pipeline...")
+        logger.info(
+            "Starting Bronze Delta Pipeline..."
+        )
 
         stream_df = self.pipeline.read_stream()
 
-        query = (
-
-            stream_df.writeStream
-
-            .format("delta")
-
-            .outputMode(APPEND)
-
-            .option(
-                "checkpointLocation",
-                BRONZE_CHECKPOINT_PATH,
-            )
-
-            .option(
-                "path",
-                BRONZE_TRANSACTIONS_PATH,
-            )
-
-            .trigger(processingTime="10 seconds")
-
-            .start()
-
+        query = self.writer.write_stream(
+            dataframe=stream_df,
+            checkpoint_path=BRONZE_CHECKPOINT_PATH,
+            trigger_interval="10 seconds",
         )
 
         logger.success(
@@ -64,5 +57,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()
