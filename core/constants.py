@@ -42,6 +42,10 @@ ARCHIVE_PATH = f"s3a://{MINIO_BUCKET}/archive"
 # DATASET PATHS
 # =============================================================================
 
+POS_BATCH_INPUT_PATH = (
+    f"{LANDING_PATH}/pos/pos_transactions.csv"
+)
+
 BRONZE_TRANSACTIONS_PATH = (
     f"{BRONZE_PATH}/transactions"
 )
@@ -56,6 +60,10 @@ GOLD_TRANSACTIONS_PATH = (
 
 QUARANTINE_TRANSACTIONS_PATH = (
     f"{QUARANTINE_PATH}/transactions"
+) 
+
+BRONZE_SUPPLY_ORDERS_PATH = (
+    f"{BRONZE_PATH}/supply_orders"
 )
 
 # =============================================================================
@@ -70,12 +78,20 @@ BRONZE_CHECKPOINT_PATH = (
     f"{CHECKPOINT_ROOT}/bronze"
 )
 
+TRANSACTIONS_CHECKPOINT_PATH = (
+    f"{CHECKPOINT_ROOT}/transactions"
+)
+
 SILVER_CHECKPOINT_PATH = (
     f"{CHECKPOINT_ROOT}/silver"
 )
 
 GOLD_CHECKPOINT_PATH = (
     f"{CHECKPOINT_ROOT}/gold"
+)
+
+SUPPLY_ORDERS_CHECKPOINT_PATH = (
+    f"{CHECKPOINT_ROOT}/supply_orders"
 )
 
 # =============================================================================

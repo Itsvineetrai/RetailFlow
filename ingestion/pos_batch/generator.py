@@ -3,7 +3,10 @@ from __future__ import annotations
 import csv, random
 from datetime import datetime, timedelta
 from pathlib import Path
+from sys import path
 from uuid import uuid4
+
+import minio
 
 from ingestion.master_data.stores import STORES
 from ingestion.master_data.products import PRODUCTS
@@ -12,6 +15,7 @@ from ingestion.master_data.payment_methods import PAYMENT_METHODS
 from ingestion.master_data.promotions import PROMOTIONS
 from core.logger import get_logger
 from core.utils import ensure_directory
+from core.minio_client import MinIOClient
 
 logger = get_logger(__name__)
 
@@ -78,6 +82,24 @@ class POSBatchGenerator:
             w.writeheader()
             w.writerows(rows)
         logger.success(f"Generated {records} records at {path}")
+# -------------------------------------------------------------
+# Upload generated batch to MinIO landing
+# -------------------------------------------------------------
+        minio = MinIOClient()
 
+        minio.upload_file(
+            object_name="landing/pos/pos_transactions.csv",
+            file_path=str(path),
+        )
+
+        logger.success(
+            "Uploaded POS batch to MinIO: "
+            "landing/pos/pos_transactions.csv"
+    )
 if __name__=="__main__":
     POSBatchGenerator().to_csv("storage/landing/pos_transactions.csv",1000)
+
+# python -m ingestion.pos_batch.generator
+# docker exec -it retailflow-airflow-scheduler-1 bash
+# cd /opt/airflow/project
+# python -m scripts.run_batch_pipeline s3a://retailflow/landing/pos/pos_transactions.csv

@@ -20,7 +20,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # ------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-ENV_FILE = BASE_DIR.parent / ".env"
+ENV_FILE = BASE_DIR / ".env"
 
 load_dotenv(ENV_FILE)
 
@@ -67,6 +67,30 @@ class Settings(BaseSettings):
         alias="KAFKA_TOPIC_SUPPLY",
     )
 
+    # ==========================================================
+    # Supply Chain API
+    # ==========================================================
+    
+    supply_api_base_url: str = Field(
+        default="",
+        alias="SUPPLY_API_BASE_URL",
+    )
+
+    supply_api_endpoint: str = Field(
+        default="/orders",
+        alias="SUPPLY_API_ENDPOINT",
+    )
+
+    supply_api_timeout_seconds: float = Field(
+        default=10.0,
+        alias="SUPPLY_API_TIMEOUT_SECONDS",
+    )
+
+    supply_api_max_retries: int = Field(
+        default=3,
+        alias="SUPPLY_API_MAX_RETRIES",
+    )
+    
     # ==========================================================
     # Spark
     # ==========================================================

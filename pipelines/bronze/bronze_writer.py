@@ -56,7 +56,8 @@ class BronzeWriter:
         self,
         dataframe: DataFrame,
         checkpoint_path: str,
-        trigger_interval: str = "10 seconds",
+        output_path: str,
+        trigger_interval: str = "30 seconds",
     ):
         """
         Write a streaming DataFrame to Bronze Delta.
@@ -79,7 +80,7 @@ class BronzeWriter:
                 )
                 .option(
                     "path",
-                    BRONZE_TRANSACTIONS_PATH,
+                    output_path,
                 )
                 .trigger(
                     processingTime=trigger_interval

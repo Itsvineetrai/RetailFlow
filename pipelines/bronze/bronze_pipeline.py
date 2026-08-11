@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from core.constants import BRONZE_CHECKPOINT_PATH
+from core.constants import (
+    BRONZE_CHECKPOINT_PATH,
+    BRONZE_TRANSACTIONS_PATH,
+)
 from core.logger import get_logger
 
 from ingestion.ecommerce_stream.pipeline import (
@@ -41,6 +44,7 @@ class BronzePipeline:
         query = self.writer.write_stream(
             dataframe=stream_df,
             checkpoint_path=BRONZE_CHECKPOINT_PATH,
+            output_path=BRONZE_TRANSACTIONS_PATH,
             trigger_interval="10 seconds",
         )
 

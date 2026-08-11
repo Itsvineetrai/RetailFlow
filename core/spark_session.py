@@ -64,6 +64,22 @@ class SparkSessionManager:
                 SparkSession.builder
                 .master(master_url)
                 .appName(app_name)
+                # ---------------------------------------------------------
+                # Resource allocation
+                # ---------------------------------------------------------
+                .config(
+                    "spark.cores.max",
+                    "2",
+                )
+                .config(
+                    "spark.executor.cores",
+                    "1",
+                )
+                .config(
+                    "spark.executor.memory",
+                    "1g",
+                )
+ 
                 # --------------------------------------------
                 # Local Filesystem & Dependency Packages
                 # --------------------------------------------
