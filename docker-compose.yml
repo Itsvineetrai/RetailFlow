@@ -14,6 +14,10 @@ volumes:
     name: ${PROJECT_NAME:-retailflow}-postgres-data
   airflow-logs:
     name: ${PROJECT_NAME:-retailflow}-airflow-logs
+  prometheus-data:
+    name: ${PROJECT_NAME:-retailflow}-prometheus-data
+  grafana-data:
+    name: ${PROJECT_NAME:-retailflow}-grafana-data
 
 x-airflow-common: &airflow-common
   build:
@@ -335,3 +339,65 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    hostname: prometheus
+    networks:
+      - retailflow-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9090/-/healthy >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:13.1.0
+    hostname: grafana
+    networks:
+      - retailflow-network
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      TZ: ${TZ:-UTC}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/api/health >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped

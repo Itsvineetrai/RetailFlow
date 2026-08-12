@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # ---------------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # ---------------------------------------------------------------------------
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus:9090
+
+  # ---------------------------------------------------------------------------
+  # Spark Structured Streaming driver metrics
+  # ---------------------------------------------------------------------------
+  - job_name: spark-streaming
+    metrics_path: /metrics/executors/prometheus
+    static_configs:
+      - targets:
+          - airflow-scheduler:4040

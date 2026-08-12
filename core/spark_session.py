@@ -79,6 +79,17 @@ class SparkSessionManager:
                     "spark.executor.memory",
                     "1g",
                 )
+                # ---------------------------------------------------------
+                # Prometheus / Structured Streaming Metrics
+                # ---------------------------------------------------------
+                .config(
+                    "spark.ui.prometheus.enabled",
+                    "true",
+                )
+                .config(
+                    "spark.sql.streaming.metricsEnabled",
+                    "true",
+                )
  
                 # --------------------------------------------
                 # Local Filesystem & Dependency Packages
