@@ -159,7 +159,7 @@ class SparkSessionManager:
             )
 
             cls._spark = builder.getOrCreate()
-            cls._spark.sparkContext.setLogLevel("WARN")
+            cls._spark.sparkContext.setLogLevel("ERROR")
             logger.success("Spark Session created successfully.")
 
         return cls._spark

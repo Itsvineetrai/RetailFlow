@@ -53,6 +53,17 @@ BRONZE_TRANSACTIONS_PATH = (
 SILVER_TRANSACTIONS_PATH = (
     f"{SILVER_PATH}/transactions"
 )
+SILVER_FORECASTING_PATH = (
+    f"{SILVER_PATH}/forecasting_history"
+)
+
+GOLD_DAILY_DEMAND_PATH = (
+    f"{GOLD_PATH}/daily_demand"
+)
+
+GOLD_FORECASTING_DATASET_PATH = (
+    f"{GOLD_PATH}/forecasting_dataset"
+)
 
 GOLD_TRANSACTIONS_PATH = (
     f"{GOLD_PATH}/transactions"
@@ -64,6 +75,10 @@ QUARANTINE_TRANSACTIONS_PATH = (
 
 BRONZE_SUPPLY_ORDERS_PATH = (
     f"{BRONZE_PATH}/supply_orders"
+)
+
+HISTORICAL_FORECASTING_PATH = (
+    f"{LANDING_PATH}/pos/historical_pos_180d.csv"
 )
 
 # =============================================================================

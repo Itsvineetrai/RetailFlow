@@ -103,3 +103,4 @@ if __name__=="__main__":
 # docker exec -it retailflow-airflow-scheduler-1 bash
 # cd /opt/airflow/project
 # python -m scripts.run_batch_pipeline s3a://retailflow/landing/pos/pos_transactions.csv
+# python -m ingestion.pos_batch.historical_generator 
