@@ -1,0 +1,6 @@
+streamlit
+pandas
+pyarrow
+deltalake==1.6.2
+plotly
+python-dotenv

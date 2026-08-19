@@ -83,5 +83,15 @@ with DAG(
         """,
 
     )
+    demand_forecast = BashOperator(
 
-    silver_pipeline >> gold_pipeline
+        task_id="demand_forecast",
+
+        bash_command="""
+        set -e
+        cd /opt/airflow/project
+        python -m scripts.run_demand_forecast
+        """,
+    )
+
+    silver_pipeline >> gold_pipeline >> demand_forecast
