@@ -95,3 +95,5 @@ secrets/
 *.bak
 *.tmp
 *.cache
+__pycache__/
+*.pyc
